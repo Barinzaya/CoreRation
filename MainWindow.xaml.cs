@@ -360,7 +360,9 @@ namespace CoreRation
 
                 if(a > b)
                 {
-                    (a, b) = (b, a);
+                    var c = a;
+                    a = b;
+                    b = c;
                 }
 
                 if(b >= numCores)
