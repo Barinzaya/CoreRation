@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("CoreRation")]
-[assembly: AssemblyCopyright("Copyright © Barinzaya 2020")]
+[assembly: AssemblyCopyright("Copyright © 2020 Barinzaya")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
