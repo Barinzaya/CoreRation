@@ -10,7 +10,7 @@ Unless you're certain that you need it, you probably shouldn't. In the vast majo
 
 ## Why was this made?
 
-While attempting to switch from GPU to CPU encoding for streaming, I was trying to find a way to help ensure that the CPU encoding didn't stutter when the game being played was CPU-heavy. So this utility was created to allow me to assign specific CPU affinities and process priorities to specific properties, and then assign a default set of affinities to all other processes.
+While attempting to switch from GPU to CPU encoding for streaming, I was trying to find a way to help ensure that the CPU encoding didn't stutter when the game being played was CPU-heavy. So this utility was created to allow me to assign specific CPU affinities and process priorities to specific processes, and then assign a default set of affinities to all other processes.
 
 It didn't work out in my case, and I ultimately still use GPU encoding--but that wasn't a fault of this utility, which could still potentially be useful to others who want to give it a go.
 
