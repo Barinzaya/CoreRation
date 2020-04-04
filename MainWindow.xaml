@@ -7,7 +7,7 @@
         xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         x:Class="CoreRation.MainWindow"
         mc:Ignorable="d"
-        Title="CoreRation" Height="436.799" Width="800" MinHeight="337" Closing="Window_Closing" Closed="Window_Closed" Loaded="Window_Loaded">
+        Title="CoreRation" Height="400" Width="800" MinHeight="345" Closing="Window_Closing" Closed="Window_Closed" Loaded="Window_Loaded" MinWidth="612">
     <Window.Resources>
         <CollectionViewSource x:Key="Profiles" Source="{Binding Profiles}">
             <CollectionViewSource.SortDescriptions>
@@ -42,7 +42,7 @@
             <TextBox x:Name="ProfileNameField" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" Text="{Binding Name}" Grid.ColumnSpan="2" TabIndex="1" ToolTip="The name of the selected core profile (for display purposes only)." TextChanged="Input_Changed"/>
             <Grid x:Name="ProcessPanel" Margin="160,157,0,0" d:DataContext="{d:DesignInstance {x:Type local:ProcessConfig}}">
                 <Label x:Name="ProcessNameLabel" Content="Process Name:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0"/>
-                <TextBox x:Name="ProcessNameField" HorizontalAlignment="Left" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="452" Text="{Binding Name}" TabIndex="5" ToolTip="The name of the process to apply the settings to. This should be the executable name without the .exe extension (e.g. notepad)." TextChanged="Input_Changed"/>
+                <TextBox x:Name="ProcessNameField" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Text="{Binding Name}" TabIndex="5" ToolTip="The name of the process to apply the settings to. This should be the executable name without the .exe extension (e.g. notepad)." TextChanged="Input_Changed"/>
                 <Grid Margin="0,44,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
