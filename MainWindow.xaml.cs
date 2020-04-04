@@ -146,6 +146,101 @@ namespace CoreRation
 
         private void ApplyButton_Click(object sender, RoutedEventArgs ev)
         {
+            ApplyConfig();
+        }
+
+        private void DelProcessButton_Click(object sender, RoutedEventArgs ev)
+        {
+            var process = CurrentProcess;
+            var profile = CurrentProfile;
+            if(process == null || profile == null) return;
+
+            var result = MessageBox.Show($"Are you sure you want to delete the process \"{process.Name}\"?", "Delete Process", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if(result == MessageBoxResult.Yes)
+            {
+                profile.Processes.Remove(process);
+            }
+        }
+
+        private void DelProfileButton_Click(object sender, RoutedEventArgs ev)
+        {
+            var profile = CurrentProfile;
+            if(profile == null) return;
+
+            var result = MessageBox.Show($"Are you sure you want to delete the profile \"{profile.Name}\"?", "Delete Process", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if(result == MessageBoxResult.Yes)
+            {
+                appConfig.Profiles.Remove(profile);
+            }
+        }
+
+        private void LoadButton_Click(object sender, RoutedEventArgs ev)
+        {
+            var result = loadDialog.ShowDialog(this);
+            if(result == true)
+            {
+                var path = loadDialog.FileName;
+
+                try
+                {
+                    appConfig = LoadConfig(path);
+
+                    DataContext = appConfig;
+                    CurrentProfile = appConfig.Profiles?.FirstOrDefault();
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show($"Failed to load configuration from <{path}>: {e.Message}", "Load Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ProcessList_SelectionChanged(object sender, SelectionChangedEventArgs ev)
+        {
+            var process = CurrentProcess;
+            DelProcessButton.IsEnabled = (process != null);
+            ProcessPanel.IsEnabled = (process != null);
+            ProcessPanel.DataContext = process;
+        }
+
+        private void ProfileList_SelectionChanged(object sender, SelectionChangedEventArgs ev)
+        {
+            var profile = CurrentProfile;
+            DelProfileButton.IsEnabled = (profile != null);
+            ProfilePanel.IsEnabled = (profile != null);
+            ProfilePanel.DataContext = profile;
+        }
+
+        private void ResetButton_Click(object sender, RoutedEventArgs ev)
+        {
+            ResetConfig();
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs ev)
+        {
+            var result = saveDialog.ShowDialog(this);
+            if(result == true)
+            {
+                var path = saveDialog.FileName;
+
+                try
+                {
+                    SaveConfig(path, appConfig);
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show($"Failed to save configuration to <{path}>: {e.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            ResetConfig();
+        }
+
+        public void ApplyConfig()
+        {
             var profile = CurrentProfile;
             if(profile == null) return;
 
@@ -213,101 +308,6 @@ namespace CoreRation
                         process.ProcessorAffinity = (IntPtr)otherMask;
                     }
                     catch {}
-                }
-            }
-        }
-
-        private void DelProcessButton_Click(object sender, RoutedEventArgs ev)
-        {
-            var process = CurrentProcess;
-            var profile = CurrentProfile;
-            if(process == null || profile == null) return;
-
-            var result = MessageBox.Show($"Are you sure you want to delete the process \"{process.Name}\"?", "Delete Process", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if(result == MessageBoxResult.Yes)
-            {
-                profile.Processes.Remove(process);
-            }
-        }
-
-        private void DelProfileButton_Click(object sender, RoutedEventArgs ev)
-        {
-            var profile = CurrentProfile;
-            if(profile == null) return;
-
-            var result = MessageBox.Show($"Are you sure you want to delete the profile \"{profile.Name}\"?", "Delete Process", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if(result == MessageBoxResult.Yes)
-            {
-                appConfig.Profiles.Remove(profile);
-            }
-        }
-
-        private void LoadButton_Click(object sender, RoutedEventArgs ev)
-        {
-            var result = loadDialog.ShowDialog(this);
-            if(result == true)
-            {
-                var path = loadDialog.FileName;
-
-                try
-                {
-                    appConfig = LoadConfig(path);
-
-                    DataContext = appConfig;
-                    CurrentProfile = appConfig.Profiles?.FirstOrDefault();
-                }
-                catch(Exception e)
-                {
-                    MessageBox.Show($"Failed to load configuration from <{path}>: {e.Message}", "Load Failed", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void ProcessList_SelectionChanged(object sender, SelectionChangedEventArgs ev)
-        {
-            var process = CurrentProcess;
-            DelProcessButton.IsEnabled = (process != null);
-            ProcessPanel.IsEnabled = (process != null);
-            ProcessPanel.DataContext = process;
-        }
-
-        private void ProfileList_SelectionChanged(object sender, SelectionChangedEventArgs ev)
-        {
-            var profile = CurrentProfile;
-            DelProfileButton.IsEnabled = (profile != null);
-            ProfilePanel.IsEnabled = (profile != null);
-            ProfilePanel.DataContext = profile;
-        }
-
-        private void ResetButton_Click(object sender, RoutedEventArgs ev)
-        {
-            var numCores = Environment.ProcessorCount;
-
-            var allMask = (IntPtr)(1L << numCores) - 1;
-            foreach(var process in Process.GetProcesses())
-            {
-                try
-                {
-                    process.ProcessorAffinity = allMask;
-                }
-                catch {}
-            }
-        }
-
-        private void SaveButton_Click(object sender, RoutedEventArgs ev)
-        {
-            var result = saveDialog.ShowDialog(this);
-            if(result == true)
-            {
-                var path = saveDialog.FileName;
-
-                try
-                {
-                    SaveConfig(path, appConfig);
-                }
-                catch(Exception e)
-                {
-                    MessageBox.Show($"Failed to save configuration to <{path}>: {e.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -380,6 +380,21 @@ namespace CoreRation
             }
 
             return result;
+        }
+
+        public void ResetConfig()
+        {
+            var numCores = Environment.ProcessorCount;
+
+            var allMask = (IntPtr)(1L << numCores) - 1;
+            foreach(var process in Process.GetProcesses())
+            {
+                try
+                {
+                    process.ProcessorAffinity = allMask;
+                }
+                catch {}
+            }
         }
 
         public void SaveConfig(string path, AppConfig appConfig)
