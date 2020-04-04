@@ -223,7 +223,6 @@ namespace CoreRation
         private void Input_Changed(object sender, RoutedEventArgs ev)
         {
             changed = true;
-            Console.WriteLine(sender);
         }
 
         private void LoadButton_Click(object sender, RoutedEventArgs ev)
@@ -545,7 +544,6 @@ namespace CoreRation
             {
                 try
                 {
-                    Console.WriteLine($"Applying priority {priority} to process {process.Id} ({process.ProcessName})");
                     process.PriorityClass = priority.Value;
                 }
                 catch {}
@@ -555,7 +553,6 @@ namespace CoreRation
             {
                 try
                 {
-                    Console.WriteLine($"Applying affinity mask {cores:x} to process {process.Id} ({process.ProcessName})");
                     process.ProcessorAffinity = (IntPtr)cores;
                 }
                 catch {}
