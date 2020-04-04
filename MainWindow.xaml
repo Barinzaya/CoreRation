@@ -7,7 +7,7 @@
         xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         x:Class="CoreRation.MainWindow"
         mc:Ignorable="d"
-        Title="CoreRation" Height="361.942" Width="800" MinHeight="293" Closing="Window_Closing" Closed="Window_Closed" Loaded="Window_Loaded">
+        Title="CoreRation" Height="436.799" Width="800" MinHeight="337" Closing="Window_Closing" Closed="Window_Closed" Loaded="Window_Loaded">
     <Window.Resources>
         <CollectionViewSource x:Key="Profiles" Source="{Binding Profiles}">
             <CollectionViewSource.SortDescriptions>
@@ -16,19 +16,13 @@
         </CollectionViewSource>
     </Window.Resources>
     <Grid x:Name="AppPanel" d:DataContext="{d:DesignInstance {x:Type local:AppConfig}}">
-        <Button x:Name="ResetButton" Content="Reset" HorizontalAlignment="Right" Margin="0,0,90,10" VerticalAlignment="Bottom" Width="75" Click="ResetButton_Click" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" TabIndex="8" ToolTip="Resets the core affinities of all processes."/>
-        <Button x:Name="ApplyButton" Content="Apply" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="75" Click="ApplyButton_Click" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" TabIndex="7" ToolTip="Applies the settings configured in the selected core profile."/>
-        <ListBox x:Name="ProfileList" HorizontalAlignment="Left" Margin="10,31,0,35" Width="155" VerticalContentAlignment="Top" SelectionChanged="ProfileList_SelectionChanged" ItemsSource="{Binding Source={StaticResource Profiles}}" DisplayMemberPath="Name" IsTabStop="True" TabIndex="0"/>
         <Label x:Name="ProfileListLabel" Content="Profiles:" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center"/>
+        <ListBox x:Name="ProfileList" HorizontalAlignment="Left" Margin="10,31,0,35" Width="155" VerticalContentAlignment="Top" SelectionChanged="ProfileList_SelectionChanged" ItemsSource="{Binding Source={StaticResource Profiles}}" DisplayMemberPath="Name" IsTabStop="True" TabIndex="0"/>
         <Button x:Name="AddProfileButton" Content="+" HorizontalAlignment="Left" Margin="145,6,0,0" VerticalAlignment="Top" Width="20" Click="AddProfileButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsTabStop="False" ToolTip="Creates a new core profile."/>
         <Button x:Name="DelProfileButton" Content="-" HorizontalAlignment="Left" Margin="120,6,0,0" VerticalAlignment="Top" Width="20" Click="DelProfileButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsTabStop="False" ToolTip="Deletes the selected core profile."/>
         <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Left" Margin="10,0,0,10" VerticalAlignment="Bottom" Width="75" Click="LoadButton_Click" VerticalContentAlignment="Center" IsTabStop="False" ToolTip="Loads a set of profiles from a file."/>
         <Button x:Name="SaveButton" Content="Save" HorizontalAlignment="Left" Margin="90,0,0,10" VerticalAlignment="Bottom" Width="75" Click="SaveButton_Click" VerticalContentAlignment="Center" IsTabStop="False" AutomationProperties.IsColumnHeader="True" ToolTip="Saves the above profiles to a file."/>
         <Grid x:Name="ProfilePanel" Margin="170,31,10,35" d:DataContext="{d:DesignInstance {x:Type local:ProfileConfig}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="25*"/>
-                <ColumnDefinition Width="587*"/>
-            </Grid.ColumnDefinitions>
 
             <Grid.Resources>
                 <CollectionViewSource x:Key="Processes" Source="{Binding Processes}">
@@ -38,17 +32,17 @@
                 </CollectionViewSource>
             </Grid.Resources>
 
-            <ListBox x:Name="ProcessList" HorizontalAlignment="Left" Width="155" Margin="0,113,0,0" SelectionChanged="ProcessList_SelectionChanged" VerticalContentAlignment="Top" DisplayMemberPath="Name" ItemsSource="{Binding Source={StaticResource Processes}}" Grid.ColumnSpan="2" IsTabStop="True" TabIndex="3"/>
-            <Label x:Name="OtherCoresLabel" Content="Other Process Cores:" HorizontalAlignment="Left" Margin="0,44,0,0" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Grid.ColumnSpan="2"/>
-            <TextBox x:Name="OtherCoresField" Height="23" Margin="0,60,0,0" TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" Text="{Binding OtherCores}" Grid.ColumnSpan="2" TabIndex="2" ToolTip="A list of cores to assign to processes that aren't listed below. Leave blank to leave their affinities unchanged." TextChanged="Input_Changed"/>
-            <Label x:Name="ProcessListLabel" Content="Processes:" HorizontalAlignment="Left" Margin="0,90,0,0" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Grid.ColumnSpan="2"/>
-            <Button x:Name="AddProcessButton" Content="+" HorizontalAlignment="Left" Margin="109.696,88,0,0" VerticalAlignment="Top" Width="20" Click="AddProcessButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="1" IsTabStop="False" ToolTip="Adds a new process entry to the selected core profile."/>
-            <Button x:Name="DelProcessButton" Content="-" HorizontalAlignment="Left" Margin="84.696,88,0,0" VerticalAlignment="Top" Width="20" Click="DelProcessButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="1" IsTabStop="False" ToolTip="Removes the selected process entry from the selected core profile."/>
-            <Label x:Name="ProfileNameLabel" Content="Profile Name:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Grid.ColumnSpan="2"/>
+            <ListBox x:Name="ProcessList" HorizontalAlignment="Left" Width="155" Margin="0,157,0,0" SelectionChanged="ProcessList_SelectionChanged" VerticalContentAlignment="Top" DisplayMemberPath="Name" ItemsSource="{Binding Source={StaticResource Processes}}" IsTabStop="True" TabIndex="4"/>
+            <Label x:Name="OtherCoresLabel" Content="Other Process Cores:" HorizontalAlignment="Left" Margin="0,44,0,0" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Height="16" Width="109"/>
+            <TextBox x:Name="OtherCoresField" Height="23" Margin="0,60,0,0" TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" Text="{Binding OtherCores, ValidatesOnExceptions=True}" Grid.ColumnSpan="2" TabIndex="2" ToolTip="A list of cores to assign to processes that aren't listed below. Leave blank to leave their affinities unchanged." TextChanged="Input_Changed"/>
+            <Label x:Name="ProcessListLabel" Content="Processes:" HorizontalAlignment="Left" Margin="0,134,0,0" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Height="16" Width="54"/>
+            <Button x:Name="AddProcessButton" Content="+" HorizontalAlignment="Left" Margin="135,132,0,0" VerticalAlignment="Top" Width="20" Click="AddProcessButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsTabStop="False" ToolTip="Adds a new process entry to the selected core profile." Height="20"/>
+            <Button x:Name="DelProcessButton" Content="-" HorizontalAlignment="Left" Margin="110,132,0,0" VerticalAlignment="Top" Width="20" Click="DelProcessButton_Click" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsTabStop="False" ToolTip="Removes the selected process entry from the selected core profile." Height="20"/>
+            <Label x:Name="ProfileNameLabel" Content="Profile Name:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" VerticalContentAlignment="Center" Height="16" Width="71"/>
             <TextBox x:Name="ProfileNameField" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" VerticalContentAlignment="Center" Text="{Binding Name}" Grid.ColumnSpan="2" TabIndex="1" ToolTip="The name of the selected core profile (for display purposes only)." TextChanged="Input_Changed"/>
-            <Grid x:Name="ProcessPanel" Margin="134.696,113,0,0" d:DataContext="{d:DesignInstance {x:Type local:ProcessConfig}}" Grid.Column="1">
+            <Grid x:Name="ProcessPanel" Margin="160,157,0,0" d:DataContext="{d:DesignInstance {x:Type local:ProcessConfig}}">
                 <Label x:Name="ProcessNameLabel" Content="Process Name:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0"/>
-                <TextBox x:Name="ProcessNameField" HorizontalAlignment="Left" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="452" Text="{Binding Name}" TabIndex="4" ToolTip="The name of the process to apply the settings to. This should be the executable name without the .exe extension (e.g. notepad)." TextChanged="Input_Changed"/>
+                <TextBox x:Name="ProcessNameField" HorizontalAlignment="Left" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="452" Text="{Binding Name}" TabIndex="5" ToolTip="The name of the process to apply the settings to. This should be the executable name without the .exe extension (e.g. notepad)." TextChanged="Input_Changed"/>
                 <Grid Margin="0,44,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -57,14 +51,19 @@
                     </Grid.ColumnDefinitions>
                     <Label x:Name="ProcessPriorityLabel" Content="Process Priority:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0"/>
                     <Label x:Name="ProcessCoresLabel" Content="Process Cores:" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" Grid.Column="3"/>
-                    <TextBox x:Name="ProcessCoresField" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Column="3" Text="{Binding Cores}" TabIndex="6" ToolTip="A list of cores to assign to the specified process. Leave blank to leave its affinity unchanged." TextChanged="Input_Changed"/>
-                    <ComboBox x:Name="ProcessPriorityField" Margin="0,16,0,0" VerticalAlignment="Top" IsTextSearchEnabled="False" IsReadOnly="True" SelectedItem="{Binding Priority}" TabIndex="5" ToolTip="The priority to apply to the process, if any." SelectionChanged="Input_Changed"/>
+                    <TextBox x:Name="ProcessCoresField" Height="23" Margin="0,16,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Column="3" Text="{Binding Cores, ValidatesOnExceptions=True}" TabIndex="7" ToolTip="A list of cores to assign to the specified process. Leave blank to leave its affinity unchanged." TextChanged="Input_Changed"/>
+                    <ComboBox x:Name="ProcessPriorityField" Margin="0,16,0,0" VerticalAlignment="Top" IsTextSearchEnabled="False" IsReadOnly="True" SelectedItem="{Binding Priority}" TabIndex="6" ToolTip="The priority to apply to the process, if any." SelectionChanged="Input_Changed"/>
 
                 </Grid>
 
             </Grid>
+            <Label x:Name="MonitorIntervalLabel" Content="Monitor Interval (milliseconds):" HorizontalAlignment="Left" Margin="0,88,0,0" VerticalAlignment="Top" Padding="0" Grid.ColumnSpan="2" Height="16" Width="163"/>
+            <TextBox x:Name="MonitorIntervalField" HorizontalAlignment="Left" Height="23" Margin="0,104,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="163" Grid.ColumnSpan="2" ToolTip="How frequently (in milliseconds) that CoreRation will check for new processes when monitoring." TabIndex="3" Text="{Binding MonitorInterval, ValidatesOnExceptions=True}" TextChanged="Input_Changed"/>
 
         </Grid>
+        <Button x:Name="ResetButton" Content="Reset" HorizontalAlignment="Left" Margin="330,0,0,10" Width="75" Click="ResetButton_Click" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" TabIndex="10" ToolTip="Resets the core affinities of all processes." Height="20" VerticalAlignment="Bottom"/>
+        <Button x:Name="MonitorButton" Content="Start Monitoring" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="105" Click="MonitorButton_Click" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" TabIndex="9" ToolTip="Applies the settings configured in the selected core profile."/>
+        <Button x:Name="ApplyButton" Content="Apply" HorizontalAlignment="Right" Margin="0,0,120,10" VerticalAlignment="Bottom" Width="75" Click="ApplyButton_Click" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" TabIndex="8" ToolTip="Applies the settings configured in the selected core profile."/>
 
     </Grid>
 </Window>

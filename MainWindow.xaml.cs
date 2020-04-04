@@ -10,7 +10,6 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -26,7 +25,11 @@ namespace CoreRation
         private readonly SaveFileDialog saveDialog;
 
         private bool changed = false;
-        private string currentConfig = null;
+        private string currentConfigPath = null;
+
+        private DispatcherTimer monitorTimer;
+        private CompiledProfile monitorProfile = null;
+        private ISet<int> newMonitorPIDs, oldMonitorPIDs;
 
         private ProfileConfig CurrentProfile
         {
@@ -119,6 +122,12 @@ namespace CoreRation
             ProfileList_SelectionChanged(this, null);
 
             ProcessPriorityField.ItemsSource = Enum.GetValues(typeof(ProcessPriority));
+
+            monitorTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher);
+            monitorTimer.Tick += MonitorTimer_Tick;
+
+            newMonitorPIDs = new HashSet<int>();
+            oldMonitorPIDs = new HashSet<int>();
         }
 
         private void AddProcessButton_Click(object sender, RoutedEventArgs ev)
@@ -157,7 +166,30 @@ namespace CoreRation
         {
             if(CurrentProfile != null)
             {
-                ApplyProfile(CurrentProfile);
+                CompiledProfile compiled;
+
+                try
+                {
+                    compiled = CompileProfile(CurrentProfile);
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show(e.Message, "Profile Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    foreach(var process in Process.GetProcesses())
+                    {
+                        compiled.Apply(process);
+                    }
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show(e.Message, "Failed to Apply Profile", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
             }
         }
 
@@ -188,7 +220,7 @@ namespace CoreRation
             }
         }
 
-        private void Input_Changed(object sender, RoutedEventArgs e)
+        private void Input_Changed(object sender, RoutedEventArgs ev)
         {
             changed = true;
             Console.WriteLine(sender);
@@ -213,6 +245,85 @@ namespace CoreRation
                     MessageBox.Show($"Failed to load configuration from <{path}>: {e.Message}", "Load Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private void MonitorButton_Click(object sender, RoutedEventArgs ev)
+        {
+            var monitoring = !monitorTimer.IsEnabled;
+            if(monitoring)
+            {
+                CompiledProfile compiled;
+
+                try
+                {
+                    compiled = CompileProfile(CurrentProfile);
+
+                    if(CurrentProfile.MonitorInterval < 1)
+                    {
+                        throw new Exception("Monitor interval must be a positive number.");
+                    }
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show(e.Message, "Profile Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                newMonitorPIDs.Clear();
+                oldMonitorPIDs.Clear();
+
+                monitorProfile = compiled;
+                monitorTimer.Interval = new TimeSpan(0, 0, 0, 0, CurrentProfile.MonitorInterval);
+                monitorTimer.Start();
+
+                MonitorTimer_Tick(monitorTimer, EventArgs.Empty);
+            }
+            else
+            {
+                monitorTimer.Stop();
+            }
+
+            ApplyButton.IsEnabled = !monitoring;
+            ResetButton.IsEnabled = !monitoring;
+            MonitorButton.Content = monitoring ? "Stop Monitoring" : "Start Monitoring";
+
+            ProfileList.IsEnabled = !monitoring;
+            AddProfileButton.IsEnabled = !monitoring;
+            DelProfileButton.IsEnabled = !monitoring;
+
+            LoadButton.IsEnabled = !monitoring;
+            SaveButton.IsEnabled = !monitoring;
+
+            ProfileNameField.IsEnabled = !monitoring;
+            OtherCoresField.IsEnabled = !monitoring;
+            MonitorIntervalField.IsEnabled = !monitoring;
+
+            AddProcessButton.IsEnabled = !monitoring;
+            DelProcessButton.IsEnabled = !monitoring;
+
+            ProcessNameField.IsEnabled = !monitoring;
+            ProcessPriorityField.IsEnabled = !monitoring;
+            ProcessCoresField.IsEnabled = !monitoring;
+        }
+
+        private void MonitorTimer_Tick(object sender, EventArgs ev)
+        {
+            newMonitorPIDs.Clear();
+
+            foreach(var process in Process.GetProcesses())
+            {
+                var pid = process.Id;
+                newMonitorPIDs.Add(pid);
+
+                if(!oldMonitorPIDs.Contains(pid))
+                {
+                    monitorProfile.Apply(process);
+                }
+            }
+
+            var temp = oldMonitorPIDs;
+            oldMonitorPIDs = newMonitorPIDs;
+            newMonitorPIDs = temp;
         }
 
         private void ProcessList_SelectionChanged(object sender, SelectionChangedEventArgs ev)
@@ -248,12 +359,12 @@ namespace CoreRation
             }
         }
 
-        private void Window_Closed(object sender, EventArgs e)
+        private void Window_Closed(object sender, EventArgs ev)
         {
             RevertChanges();
         }
 
-        private void Window_Closing(object sender, CancelEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs ev)
         {
             if(!changed)
             {
@@ -266,7 +377,7 @@ namespace CoreRation
 
             if(result == MessageBoxResult.Cancel)
             {
-                e.Cancel = true;
+                ev.Cancel = true;
                 return;
             }
 
@@ -275,25 +386,25 @@ namespace CoreRation
                 bool saved;
                 try
                 {
-                    if(currentConfig == null)
+                    if(currentConfigPath == null)
                     {
                         saved = SaveConfigAs(appConfig);
                     }
                     else
                     {
-                        SaveConfig(currentConfig, appConfig);
+                        SaveConfig(currentConfigPath, appConfig);
                         saved = true;
                     }
                 }
-                catch(Exception f)
+                catch(Exception e)
                 {
-                    MessageBox.Show($"Failed to save configuration: {f.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Failed to save configuration: {e.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                     saved = false;
                 }
 
                 if(!saved)
                 {
-                    e.Cancel = true;
+                    ev.Cancel = true;
                     return;
                 }
             }
@@ -304,73 +415,31 @@ namespace CoreRation
             changed = false;
         }
 
-        public void ApplyProfile(ProfileConfig profile)
+        public CompiledProfile CompileProfile(ProfileConfig profile)
         {
             var numCores = Environment.ProcessorCount;
-            long otherMask;
+            long otherMask = ConfigUtil.ParseMask(profile.OtherCores, numCores);
 
-            if(string.IsNullOrWhiteSpace(profile.OtherCores))
-            {
-                otherMask = 0;
-            }
-            else
-            {
-                otherMask = ParseMask(profile.OtherCores, numCores);
-            }
-
-            var dict = new Dictionary<string, ProcessConfig>(StringComparer.OrdinalIgnoreCase);
+            var processes = new Dictionary<string, CompiledProcess>(StringComparer.OrdinalIgnoreCase);
             foreach(var process in profile.Processes)
             {
-                if(dict.ContainsKey(process.Name))
+                if(processes.ContainsKey(process.Name))
                 {
-                    MessageBox.Show($"Profile \"{profile.Name}\" has multiple processes named \"{process.Name}\".", "Duplicate Process", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    throw new Exception($"Profile \"{profile.Name}\" has multiple processes named \"{process.Name}\".");
                 }
 
-                if(string.IsNullOrWhiteSpace(process.Cores))
+                processes.Add(process.Name, new CompiledProcess
                 {
-                    process.coreMask = 0;
-                }
-                else
-                {
-                    process.coreMask = ParseMask(process.Cores, numCores);
-                }
-
-                dict.Add(process.Name, process);
+                    ProcessCores = ConfigUtil.ParseMask(process.Cores, numCores),
+                    ProcessPriority = process.Priority.ToPriorityClass(),
+                });
             }
 
-            foreach(var process in Process.GetProcesses())
+            return new CompiledProfile
             {
-                if(dict.TryGetValue(process.ProcessName, out var config))
-                {
-                    var priorityClass = config.Priority.ToPriorityClass();
-                    if(priorityClass.HasValue)
-                    {
-                        try
-                        {
-                            process.PriorityClass = priorityClass.Value;
-                        }
-                        catch {}
-                    }
-
-                    if(config.coreMask != 0)
-                    {
-                        try
-                        {
-                            process.ProcessorAffinity = (IntPtr)config.coreMask;
-                        }
-                        catch {}
-                    }
-                }
-                else if(otherMask != 0)
-                {
-                    try
-                    {
-                        process.ProcessorAffinity = (IntPtr)otherMask;
-                    }
-                    catch {}
-                }
-            }
+                OtherCores = otherMask,
+                Processes = processes,
+            };
         }
 
         public AppConfig LoadConfig(string path)
@@ -391,61 +460,10 @@ namespace CoreRation
                 var config =  JsonConvert.DeserializeObject<AppConfig>(s);
 
                 changed = false;
-                currentConfig = path;
+                currentConfigPath = path;
 
                 return config;
             }
-        }
-
-        private static readonly Regex RANGE_REGEX = new Regex(@"^\s*(\d+)(?:\s*-\s*(\d+))?\s*$");
-
-        private long ParseMask(string def, int numCores)
-        {
-            var result = 0L;
-
-            var start = 0;
-            while(start < def.Length)
-            {
-                var end = def.IndexOf(',', start);
-                if(end < 0) end = def.Length;
-
-                var match = RANGE_REGEX.Match(def, start, end - start);
-                if(!match.Success)
-                {
-                    var part = def.Substring(start, end - start);
-                    throw new Exception($"Failed to parse core specification: \"{part}\" is not a valid core number or range.");
-                }
-
-                var a = int.Parse(match.Groups[1].Value);
-                var b = a;
-
-                if(match.Groups[2].Success)
-                {
-                    b = int.Parse(match.Groups[2].Value);
-                }
-
-                if(a > b)
-                {
-                    var c = a;
-                    a = b;
-                    b = c;
-                }
-
-                if(b >= numCores)
-                {
-                    var part = def.Substring(start, end - start);
-                    throw new Exception($"Failed to parse core specification: {b} is out of range in core specification \"{part}\".");
-                }
-
-                for(var x = a; x <= b; x++)
-                {
-                    result |= (1L << x);
-                }
-
-                start = end + 1;
-            }
-
-            return result;
         }
 
         public void RevertChanges()
@@ -483,7 +501,7 @@ namespace CoreRation
                 writer.Write(s);
 
                 changed = false;
-                currentConfig = path;
+                currentConfigPath = path;
             }
         }
 
@@ -501,5 +519,53 @@ namespace CoreRation
                 return false;
             }
         }
+    }
+
+    public class CompiledProfile
+    {
+        public long OtherCores { get; set; }
+        public IDictionary<string, CompiledProcess> Processes { get; set; }
+
+        public void Apply(Process process)
+        {
+            long cores;
+            ProcessPriorityClass? priority = null;
+
+            if(Processes.TryGetValue(process.ProcessName, out var config))
+            {
+                cores = config.ProcessCores;
+                priority = config.ProcessPriority;
+            }
+            else
+            {
+                cores = OtherCores;
+            }
+
+            if(priority.HasValue)
+            {
+                try
+                {
+                    Console.WriteLine($"Applying priority {priority} to process {process.Id} ({process.ProcessName})");
+                    process.PriorityClass = priority.Value;
+                }
+                catch {}
+            }
+
+            if(cores != 0)
+            {
+                try
+                {
+                    Console.WriteLine($"Applying affinity mask {cores:x} to process {process.Id} ({process.ProcessName})");
+                    process.ProcessorAffinity = (IntPtr)cores;
+                }
+                catch {}
+            }
+        }
+    }
+
+    public class CompiledProcess
+    {
+        public long ProcessCores { get; set; }
+        public ProcessPriorityClass? ProcessPriority { get; set; }
     }
 }

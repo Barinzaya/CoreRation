@@ -1,10 +1,12 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace CoreRation
 {
@@ -27,6 +29,20 @@ namespace CoreRation
             set => UpdateProperty(ref name, value);
         }
 
+        [DefaultValue(500)]
+        [JsonProperty(DefaultValueHandling=DefaultValueHandling.IgnoreAndPopulate)]
+        public int MonitorInterval
+        {
+            get => monitorInterval;
+            set
+            {
+                if(value < 1)
+                    throw new ArgumentOutOfRangeException("value", "MonitorInterval must be a positive value.");
+
+                UpdateProperty(ref monitorInterval, value);
+            }
+        }
+
         [JsonProperty(DefaultValueHandling=DefaultValueHandling.IgnoreAndPopulate)]
         public string OtherCores
         {
@@ -41,9 +57,13 @@ namespace CoreRation
             set => UpdateProperty(ref processes, value);
         }
 
+        private int monitorInterval = 500;
         private string name;
         private string otherCores;
         private ObservableCollection<ProcessConfig> processes;
+
+        [JsonIgnore]
+        public long otherMask { get; set; }
     }
 
     public class ProcessConfig : BaseConfig
@@ -73,9 +93,6 @@ namespace CoreRation
         private string name;
         private string cores;
         private ProcessPriority priority;
-
-        [JsonIgnore]
-        public long coreMask { get; set; }
     }
 
     public abstract class BaseConfig : INotifyPropertyChanged, INotifyPropertyChanging
@@ -104,6 +121,65 @@ namespace CoreRation
         AboveNormal,
         High,
         Realtime,
+    }
+
+    public static class ConfigUtil
+    {
+        private static readonly Regex RANGE_REGEX = new Regex(@"^\s*(\d+)(?:\s*-\s*(\d+))?\s*$");
+
+        public static long ParseMask(string def, int numCores)
+        {
+            var result = 0L;
+
+            if(string.IsNullOrWhiteSpace(def))
+            {
+                return 0L;
+            }
+
+            var start = 0;
+            while(start < def.Length)
+            {
+                var end = def.IndexOf(',', start);
+                if(end < 0) end = def.Length;
+
+                var match = RANGE_REGEX.Match(def, start, end - start);
+                if(!match.Success)
+                {
+                    var part = def.Substring(start, end - start);
+                    throw new Exception($"Failed to parse core specification: \"{part}\" is not a valid core number or range.");
+                }
+
+                var a = int.Parse(match.Groups[1].Value);
+                var b = a;
+
+                if(match.Groups[2].Success)
+                {
+                    b = int.Parse(match.Groups[2].Value);
+                }
+
+                if(a > b)
+                {
+                    var c = a;
+                    a = b;
+                    b = c;
+                }
+
+                if(b >= numCores)
+                {
+                    var part = def.Substring(start, end - start);
+                    throw new Exception($"Failed to parse core specification: {b} is out of range in core specification \"{part}\".");
+                }
+
+                for(var x = a; x <= b; x++)
+                {
+                    result |= (1L << x);
+                }
+
+                start = end + 1;
+            }
+
+            return result;
+        }
     }
 
     public static class ProcessPriorityExt
