@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace CoreRation
 {
@@ -22,6 +24,9 @@ namespace CoreRation
 
         private readonly OpenFileDialog loadDialog;
         private readonly SaveFileDialog saveDialog;
+
+        private bool changed = false;
+        private string currentConfig = null;
 
         private ProfileConfig CurrentProfile
         {
@@ -129,6 +134,8 @@ namespace CoreRation
             profile.Processes = profile.Processes ?? new ObservableCollection<ProcessConfig>();
             profile.Processes.Add(process);
             CurrentProcess = process;
+
+            changed = true;
         }
 
         private void AddProfileButton_Click(object sender, RoutedEventArgs ev)
@@ -142,11 +149,16 @@ namespace CoreRation
             appConfig.Profiles = appConfig.Profiles ?? new ObservableCollection<ProfileConfig>();
             appConfig.Profiles.Add(profile);
             CurrentProfile = profile;
+
+            changed = true;
         }
 
         private void ApplyButton_Click(object sender, RoutedEventArgs ev)
         {
-            ApplyConfig();
+            if(CurrentProfile != null)
+            {
+                ApplyProfile(CurrentProfile);
+            }
         }
 
         private void DelProcessButton_Click(object sender, RoutedEventArgs ev)
@@ -159,6 +171,7 @@ namespace CoreRation
             if(result == MessageBoxResult.Yes)
             {
                 profile.Processes.Remove(process);
+                changed = true;
             }
         }
 
@@ -171,7 +184,14 @@ namespace CoreRation
             if(result == MessageBoxResult.Yes)
             {
                 appConfig.Profiles.Remove(profile);
+                changed = true;
             }
+        }
+
+        private void Input_Changed(object sender, RoutedEventArgs e)
+        {
+            changed = true;
+            Console.WriteLine(sender);
         }
 
         private void LoadButton_Click(object sender, RoutedEventArgs ev)
@@ -213,39 +233,80 @@ namespace CoreRation
 
         private void ResetButton_Click(object sender, RoutedEventArgs ev)
         {
-            ResetConfig();
+            RevertChanges();
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs ev)
         {
-            var result = saveDialog.ShowDialog(this);
-            if(result == true)
+            try
             {
-                var path = saveDialog.FileName;
+                SaveConfigAs(appConfig);
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show($"Failed to save configuration: {e.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            RevertChanges();
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            if(!changed)
+            {
+                return;
+            }
+
+            var result = MessageBox.Show(
+                "There are unsaved changes to the current profile. Would you like to save before exiting?",
+                "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+
+            if(result == MessageBoxResult.Cancel)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if(result == MessageBoxResult.Yes)
+            {
+                bool saved;
                 try
                 {
-                    SaveConfig(path, appConfig);
+                    if(currentConfig == null)
+                    {
+                        saved = SaveConfigAs(appConfig);
+                    }
+                    else
+                    {
+                        SaveConfig(currentConfig, appConfig);
+                        saved = true;
+                    }
                 }
-                catch(Exception e)
+                catch(Exception f)
                 {
-                    MessageBox.Show($"Failed to save configuration to <{path}>: {e.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Failed to save configuration: {f.Message}", "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    saved = false;
+                }
+
+                if(!saved)
+                {
+                    e.Cancel = true;
+                    return;
                 }
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            ResetConfig();
+            changed = false;
         }
 
-        public void ApplyConfig()
+        public void ApplyProfile(ProfileConfig profile)
         {
-            var profile = CurrentProfile;
-            if(profile == null) return;
-
             var numCores = Environment.ProcessorCount;
-            var allMask = (IntPtr)(1L << numCores) - 1;
             long otherMask;
 
             if(string.IsNullOrWhiteSpace(profile.OtherCores))
@@ -327,7 +388,12 @@ namespace CoreRation
             using(var reader = new StreamReader(file, Encoding.UTF8))
             {
                 var s = reader.ReadToEnd();
-                return JsonConvert.DeserializeObject<AppConfig>(s);
+                var config =  JsonConvert.DeserializeObject<AppConfig>(s);
+
+                changed = false;
+                currentConfig = path;
+
+                return config;
             }
         }
 
@@ -382,7 +448,7 @@ namespace CoreRation
             return result;
         }
 
-        public void ResetConfig()
+        public void RevertChanges()
         {
             var numCores = Environment.ProcessorCount;
 
@@ -415,6 +481,24 @@ namespace CoreRation
             {
                 var s = JsonConvert.SerializeObject(appConfig, Formatting.Indented);
                 writer.Write(s);
+
+                changed = false;
+                currentConfig = path;
+            }
+        }
+
+        public bool SaveConfigAs(AppConfig appConfig)
+        {
+            var result = saveDialog.ShowDialog(this);
+            if(result == true)
+            {
+                var path = saveDialog.FileName;
+                SaveConfig(path, appConfig);
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
     }
