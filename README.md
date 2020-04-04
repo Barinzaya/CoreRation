@@ -16,7 +16,8 @@ It didn't work out in my case, and I ultimately still use GPU encoding--but that
 
 ## What's missing?
 
-- [ ] Background monitoring for ensuring that newly-created processes are assigned the correct affinities.
+- [x] Background monitoring for ensuring that newly-created processes are assigned the correct affinities.
+- [ ] Better reset functionality (i.e. restore to original priorities and affinities, rather than just resetting all affinities to all cores).
 
 ## Also Consider:
 
